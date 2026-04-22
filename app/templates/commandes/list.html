@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Commandes — Facturation AT{% endblock %}
+{% block page_title %}Commandes{% endblock %}
+
+{% block topbar_actions %}
+<a href="/commandes/new" class="btn btn-primary">⊕ Nouvelle commande</a>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-body" style="padding:0">
+    {% if commandes %}
+    <table>
+      <thead>
+        <tr>
+          <th>N° Commande</th><th>Client</th><th>Mission</th>
+          <th>Postes</th><th>Total</th><th>Consommé</th><th>Solde</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for cmd in commandes %}
+        {% set total = cmd.postes | sum(attribute='montant_total') %}
+        {% set consomme = cmd.postes | sum(attribute='consomme') %}
+        <tr>
+          <td><strong>{{ cmd.numero }}</strong></td>
+          <td>{{ cmd.mission.client }}</td>
+          <td>{{ cmd.mission.mission_name }}</td>
+          <td>{{ cmd.postes | length }}</td>
+          <td class="text-right">{{ total | montant }}</td>
+          <td class="text-right">{{ consomme | montant }}</td>
+          <td class="text-right"><strong>{{ (total - consomme) | montant }}</strong></td>
+          <td>
+            <div class="flex gap-2">
+              <a href="/commandes/{{ cmd.id }}" class="btn btn-sm btn-secondary">Voir</a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="text-muted text-center" style="padding:40px">
+      Aucune commande. <a href="/commandes/new">Créer la première</a>.
+    </p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

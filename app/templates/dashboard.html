@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}Tableau de bord — Facturation AT{% endblock %}
+{% block page_title %}Tableau de bord{% endblock %}
+
+{% block topbar_actions %}
+<form method="post" action="/bdl/generer" style="display:flex;gap:8px;align-items:center">
+  <select name="mois" class="form-control" style="width:130px">
+    {% set mois_fr = ["","Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"] %}
+    {% for i in range(1,13) %}
+    <option value="{{ i }}" {% if i == mois_courant %}selected{% endif %}>{{ mois_fr[i] }}</option>
+    {% endfor %}
+  </select>
+  <select name="annee" class="form-control" style="width:90px">
+    {% for a in range(annee_courante - 1, annee_courante + 3) %}
+    <option value="{{ a }}" {% if a == annee_courante %}selected{% endif %}>{{ a }}</option>
+    {% endfor %}
+  </select>
+  <button type="submit" class="btn btn-primary">⊕ Générer BDL</button>
+</form>
+{% endblock %}
+
+{% block content %}
+
+<!-- Stats -->
+<div class="stats-grid">
+  <div class="stat-card">
+    <span class="label">Missions actives</span>
+    <span class="value">{{ nb_missions }}</span>
+  </div>
+  <div class="stat-card">
+    <span class="label">BDL à traiter</span>
+    <span class="value" style="color:var(--orange)">{{ nb_bdl_en_attente }}</span>
+    <span class="sub">générés, non encore envoyés</span>
+  </div>
+  <div class="stat-card">
+    <span class="label">BDL envoyés</span>
+    <span class="value" style="color:var(--bleu)">{{ nb_bdl_envoye }}</span>
+    <span class="sub">en attente de signature</span>
+  </div>
+</div>
+
+<!-- Alertes -->
+{% if alertes %}
+<div class="card mb-3">
+  <div class="card-header">
+    <h2>⚠ Alertes solde</h2>
+  </div>
+  <div class="card-body" style="padding:0">
+    <table>
+      <thead>
+        <tr>
+          <th>Client</th><th>Mission</th><th>Consultant</th>
+          <th>Commande / Poste</th><th>Alerte</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for bdl in alertes %}
+        <tr>
+          <td><strong>{{ bdl.mission.client }}</strong></td>
+          <td>{{ bdl.mission.mission_name }}</td>
+          <td>{{ bdl.mission.consultant }}</td>
+          <td>
+            {% if bdl.commande %}{{ bdl.commande.numero }} / P{{ bdl.poste.numero_poste if bdl.poste else "—" }}{% else %}—{% endif %}
+          </td>
+          <td>
+            {% if bdl.statut_alerte == "ALERTE_10" %}
+            <span class="badge badge-alerte10">≤ 10% restant</span>
+            {% elif bdl.statut_alerte == "ALERTE_30" %}
+            <span class="badge badge-alerte30">≤ 30% restant</span>
+            {% endif %}
+          </td>
+          <td><a href="/bdl/{{ bdl.id }}" class="btn btn-sm btn-secondary">Voir</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<!-- Derniers BDL -->
+<div class="card">
+  <div class="card-header">
+    <h2>Derniers BDL générés</h2>
+    <a href="/bdl/" class="btn btn-sm btn-secondary">Voir tout</a>
+  </div>
+  <div class="card-body" style="padding:0">
+    {% if derniers_bdl %}
+    <table>
+      <thead>
+        <tr><th>Période</th><th>Client</th><th>Mission</th><th>Montant</th><th>Statut</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for bdl in derniers_bdl %}
+        <tr>
+          <td>{{ bdl.date_bdl | date_fr }}</td>
+          <td><strong>{{ bdl.mission.client }}</strong></td>
+          <td>{{ bdl.mission.mission_name }}</td>
+          <td class="text-right"><strong>{{ bdl.montant_effectif | montant }}</strong></td>
+          <td>
+            {% if bdl.statut_document.value == "SIGNE" %}<span class="badge badge-vert">Signé</span>
+            {% elif bdl.statut_document.value == "ENVOYE" %}<span class="badge badge-bleu">Envoyé</span>
+            {% else %}<span class="badge badge-gris">Généré</span>{% endif %}
+          </td>
+          <td><a href="/bdl/{{ bdl.id }}" class="btn btn-sm btn-secondary">Voir</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="text-muted text-center" style="padding:32px">Aucun BDL généré. Utilisez le bouton ci-dessus.</p>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

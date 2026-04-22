@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Mission {{ mission.code }} — Facturation AT{% endblock %}
+{% block page_title %}Mission {{ mission.code }} — {{ mission.client }}{% endblock %}
+
+{% block topbar_actions %}
+<a href="/missions/{{ mission.id }}/edit" class="btn btn-secondary">Modifier</a>
+<a href="/missions/" class="btn btn-secondary">← Retour</a>
+{% endblock %}
+
+{% block content %}
+<div class="form-row" style="align-items:start">
+
+  <!-- Infos mission -->
+  <div class="card">
+    <div class="card-header"><h2>Informations</h2></div>
+    <div class="card-body">
+      <table style="width:100%">
+        <tr><td class="text-muted" style="width:40%;padding:6px 0">Code</td><td><code>{{ mission.code }}</code></td></tr>
+        <tr><td class="text-muted" style="padding:6px 0">Client</td><td><strong>{{ mission.client }}</strong></td></tr>
+        <tr><td class="text-muted" style="padding:6px 0">Mission</td><td>{{ mission.mission_name }}</td></tr>
+        <tr><td class="text-muted" style="padding:6px 0">Consultant</td><td>{{ mission.consultant }}</td></tr>
+        <tr><td class="text-muted" style="padding:6px 0">Période</td><td>{{ mission.start_date | date_fr }} → {{ mission.end_date | date_fr }}</td></tr>
+        <tr><td class="text-muted" style="padding:6px 0">Facturation</td>
+          <td>
+            {% if mission.billing_type.value == "TJM_REGIE" %}TJM — {{ mission.tjm_or_forfait | montant }}/jour
+            {% elif mission.billing_type.value == "FORFAIT_MOIS_RPLSR" %}Forfait fixe — {{ mission.tjm_or_forfait | montant }}/mois
+            {% else %}Forfait avec régul. — {{ mission.tjm_or_forfait | montant }}/mois{% endif %}
+          </td>
+        </tr>
+        <tr><td class="text-muted" style="padding:6px 0">Mode conso</td>
+          <td>{% if mission.consumption_mode.value == "SEQUENTIEL" %}Séquentiel{% else %}Poste par mois{% endif %}</td>
+        </tr>
+        <tr><td class="text-muted" style="padding:6px 0">Statut</td>
+          <td>{% if mission.active %}<span class="badge badge-vert">Active</span>{% else %}<span class="badge badge-gris">Inactive</span>{% endif %}</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- Commandes liées -->
+  <div>
+    <div class="card">
+      <div class="card-header">
+        <h2>Commandes</h2>
+        <a href="/commandes/new" class="btn btn-sm btn-primary">⊕ Ajouter</a>
+      </div>
+      <div class="card-body" style="padding:0">
+        {% if mission.commandes %}
+        {% for cmd in mission.commandes %}
+        <div style="padding:16px;border-bottom:1px solid var(--border)">
+          <div class="flex justify-between items-center mb-1">
+            <strong>{{ cmd.numero }}</strong>
+            <a href="/commandes/{{ cmd.id }}" class="btn btn-sm btn-secondary">Voir</a>
+          </div>
+          {% for p in cmd.postes %}
+          <div class="poste-card {% if p.statut.value == 'TERMINE' %}termine{% endif %}" style="margin-top:8px">
+            <div class="flex justify-between items-center">
+              <span>Poste {{ p.numero_poste }}</span>
+              {% if p.statut.value == "TERMINE" %}<span class="badge badge-vert">Terminé</span>
+              {% elif p.statut.value == "EN_COURS" %}<span class="badge badge-orange">En cours</span>
+              {% else %}<span class="badge badge-gris">Non démarré</span>{% endif %}
+            </div>
+            <div class="flex justify-between mt-1">
+              <span class="text-muted">Total : {{ p.montant_total | montant }}</span>
+              <span class="text-muted">Consommé : {{ p.consomme | montant }}</span>
+              <span class="text-muted">Solde : <strong>{{ p.solde | montant }}</strong></span>
+            </div>
+            <div class="progress mt-1">
+              <div class="progress-bar {% if p.pct_solde <= 0.1 %}danger{% elif p.pct_solde <= 0.3 %}warning{% endif %}"
+                   style="width:{{ (p.pct_consomme * 100) | int }}%"></div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% endfor %}
+        {% else %}
+        <p class="text-muted text-center" style="padding:24px">Aucune commande.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

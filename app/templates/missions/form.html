@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}{% if mission %}Modifier{% else %}Nouvelle{% endif %} mission — Facturation AT{% endblock %}
+{% block page_title %}{% if mission %}Modifier la mission {{ mission.code }}{% else %}Nouvelle mission{% endif %}{% endblock %}
+
+{% block topbar_actions %}
+<a href="/missions/" class="btn btn-secondary">← Retour</a>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:720px">
+  <div class="card-body">
+    <form method="post" action="{% if mission %}/missions/{{ mission.id }}/edit{% else %}/missions/new{% endif %}">
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Client *</label>
+          <input type="text" name="client" class="form-control" required
+                 value="{{ mission.client if mission else '' }}" placeholder="CLIENT Y">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nom de la mission *</label>
+          <input type="text" name="mission_name" class="form-control" required
+                 value="{{ mission.mission_name if mission else '' }}" placeholder="MISSION B">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Consultant *</label>
+        <input type="text" name="consultant" class="form-control" required
+               value="{{ mission.consultant if mission else '' }}" placeholder="Prénom NOM">
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Date de début *</label>
+          <input type="date" name="start_date" class="form-control" required
+                 value="{{ mission.start_date.isoformat() if mission else '' }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date de fin</label>
+          <input type="date" name="end_date" class="form-control"
+                 value="{{ mission.end_date.isoformat() if mission and mission.end_date else '' }}">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Type de facturation *</label>
+          <select name="billing_type" class="form-control" id="billing_type" onchange="toggleForfait()">
+            {% for bt in billing_types %}
+            <option value="{{ bt }}" {% if mission and mission.billing_type.value == bt %}selected{% endif %}>
+              {% if bt == "TJM_REGIE" %}TJM (Régie)
+              {% elif bt == "FORFAIT_MOIS_RPLSR" %}Forfait mensuel fixe (sans régul.)
+              {% elif bt == "FORFAIT_MOIS_RPLAR" %}Forfait mensuel avec régulation
+              {% endif %}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" id="tjm_label">TJM (€/jour) *</label>
+          <input type="number" name="tjm_or_forfait" class="form-control" step="0.01" min="0" required
+                 value="{{ mission.tjm_or_forfait if mission else '' }}" placeholder="600">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Mode de consommation *</label>
+          <select name="consumption_mode" class="form-control">
+            {% for cm in consumption_modes %}
+            <option value="{{ cm }}" {% if mission and mission.consumption_mode.value == cm %}selected{% endif %}>
+              {% if cm == "SEQUENTIEL" %}Séquentiel (finir un poste avant le suivant)
+              {% else %}Poste par mois (un poste dédié par mois){% endif %}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group" id="nb_jours_group" style="display:none">
+          <label class="form-label">Jours théoriques / mois (régul.)</label>
+          <input type="number" name="nb_jours_forfait" class="form-control" min="1"
+                 value="{{ mission.nb_jours_forfait if mission and mission.nb_jours_forfait else '' }}">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+          <input type="checkbox" name="active" {% if not mission or mission.active %}checked{% endif %}
+                 style="width:16px;height:16px">
+          Mission active (incluse dans la génération BDL)
+        </label>
+      </div>
+
+      <div class="flex gap-2 mt-2">
+        <button type="submit" class="btn btn-primary">
+          {% if mission %}Enregistrer les modifications{% else %}Créer la mission{% endif %}
+        </button>
+        <a href="/missions/" class="btn btn-secondary">Annuler</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function toggleForfait() {
+  const bt = document.getElementById('billing_type').value;
+  const label = document.getElementById('tjm_label');
+  const nbJours = document.getElementById('nb_jours_group');
+  if (bt === 'TJM_REGIE') {
+    label.textContent = 'TJM (€/jour) *';
+    nbJours.style.display = 'none';
+  } else {
+    label.textContent = 'Forfait mensuel (€) *';
+    nbJours.style.display = bt === 'FORFAIT_MOIS_RPLAR' ? 'block' : 'none';
+  }
+}
+toggleForfait();
+</script>
+{% endblock %}

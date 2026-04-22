@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Facturation AT{% endblock %}</title>
+  <link rel="stylesheet" href="/static/css/app.css">
+  <script src="https://unpkg.com/htmx.org@1.9.12" defer></script>
+</head>
+<body>
+<div class="layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      Facturation AT
+      <small>Assistance Technique</small>
+    </div>
+    <nav>
+      <div class="nav-section">Navigation</div>
+      <a href="/" class="nav-link {% if request.url.path == '/' %}active{% endif %}">
+        <span class="icon">⊞</span> Tableau de bord
+      </a>
+      <div class="nav-section">Données</div>
+      <a href="/missions/" class="nav-link {% if '/missions' in request.url.path %}active{% endif %}">
+        <span class="icon">◎</span> Missions
+      </a>
+      <a href="/commandes/" class="nav-link {% if '/commandes' in request.url.path %}active{% endif %}">
+        <span class="icon">◻</span> Commandes
+      </a>
+      <div class="nav-section">BDL</div>
+      <a href="/bdl/" class="nav-link {% if '/bdl' in request.url.path and 'templates' not in request.url.path %}active{% endif %}">
+        <span class="icon">◈</span> Bons de Livraison
+      </a>
+      <a href="/bdl/templates/" class="nav-link {% if 'templates' in request.url.path %}active{% endif %}">
+        <span class="icon">⊡</span> Templates client
+      </a>
+    </nav>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="topbar">
+      <h1>{% block page_title %}{% endblock %}</h1>
+      <div class="flex gap-2">{% block topbar_actions %}{% endblock %}</div>
+    </div>
+    <div class="content">
+      {% block content %}{% endblock %}
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

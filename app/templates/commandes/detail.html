@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}Commande {{ commande.numero }} — Facturation AT{% endblock %}
+{% block page_title %}Commande {{ commande.numero }}{% endblock %}
+
+{% block topbar_actions %}
+<a href="/commandes/{{ commande.id }}/edit" class="btn btn-secondary">Modifier</a>
+<a href="/commandes/" class="btn btn-secondary">← Retour</a>
+{% endblock %}
+
+{% block content %}
+<div class="form-row" style="align-items:start">
+
+  <!-- Infos commande -->
+  <div class="card" style="max-width:320px">
+    <div class="card-header"><h2>Commande</h2></div>
+    <div class="card-body">
+      <table style="width:100%">
+        <tr><td class="text-muted" style="padding:6px 0">Numéro</td><td><strong>{{ commande.numero }}</strong></td></tr>
+        <tr><td class="text-muted" style="padding:6px 0">Client</td><td>{{ commande.mission.client }}</td></tr>
+        <tr><td class="text-muted" style="padding:6px 0">Mission</td><td>{{ commande.mission.mission_name }}</td></tr>
+        <tr><td class="text-muted" style="padding:6px 0">Consultant</td><td>{{ commande.mission.consultant }}</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- Postes -->
+  <div style="flex:1">
+    <div class="card">
+      <div class="card-header">
+        <h2>Postes</h2>
+      </div>
+      <div class="card-body" style="padding:0">
+        {% for p in commande.postes %}
+        <div class="poste-card {% if p.statut.value == 'TERMINE' %}termine{% endif %}"
+             style="margin:16px;padding:16px">
+          <div class="flex justify-between items-center mb-2">
+            <div>
+              <strong>Poste {{ p.numero_poste }}</strong>
+              {% if p.statut.value == "TERMINE" %}&nbsp;<span class="badge badge-vert">Terminé</span>
+              {% elif p.statut.value == "EN_COURS" %}&nbsp;<span class="badge badge-orange">En cours</span>
+              {% else %}&nbsp;<span class="badge badge-gris">Non démarré</span>{% endif %}
+            </div>
+            {% if p.statut.value != "TERMINE" %}
+            <form method="post" action="/commandes/{{ commande.id }}/postes/{{ p.id }}/cloture"
+                  onsubmit="return confirm('Clôturer admin ce poste ? Il ne sera plus inclus dans les BDL.')">
+              <button class="btn btn-sm btn-warning">Clôturer</button>
+            </form>
+            {% endif %}
+          </div>
+
+          <div class="form-row-3" style="margin-bottom:8px">
+            <div>
+              <div class="text-muted" style="font-size:11px;margin-bottom:2px">TOTAL</div>
+              <div class="montant-big">{{ p.montant_total | montant }}</div>
+            </div>
+            <div>
+              <div class="text-muted" style="font-size:11px;margin-bottom:2px">CONSOMMÉ</div>
+              <div class="montant-big" style="color:var(--gris)">{{ p.consomme | montant }}</div>
+            </div>
+            <div>
+              <div class="text-muted" style="font-size:11px;margin-bottom:2px">SOLDE</div>
+              <div class="montant-big" style="color:{% if p.pct_solde <= 0.1 %}var(--rouge){% elif p.pct_solde <= 0.3 %}var(--orange){% else %}var(--vert){% endif %}">
+                {{ p.solde | montant }}
+              </div>
+            </div>
+          </div>
+
+          <div class="progress">
+            <div class="progress-bar {% if p.pct_solde <= 0.1 %}danger{% elif p.pct_solde <= 0.3 %}warning{% endif %}"
+                 style="width:{{ (p.pct_consomme * 100)|int }}%"></div>
+          </div>
+          <div class="text-muted mt-1" style="font-size:11px">{{ p.pct_consomme | pct }} consommé</div>
+
+          {% if p.bdls %}
+          <div style="margin-top:12px">
+            <div class="text-muted" style="font-size:11px;margin-bottom:6px;text-transform:uppercase">BDL liés</div>
+            {% for bdl in p.bdls %}
+            <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid var(--border)">
+              <span>{{ bdl.date_bdl | date_fr }}</span>
+              <span>{{ bdl.montant_effectif | montant }}</span>
+              <a href="/bdl/{{ bdl.id }}" class="text-muted">→ voir</a>
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Ajouter un poste -->
+    <div class="card">
+      <div class="card-header"><h2>Ajouter un poste</h2></div>
+      <div class="card-body">
+        <form method="post" action="/commandes/{{ commande.id }}/postes/add">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">N° Poste</label>
+              <input type="number" name="numero_poste" class="form-control"
+                     value="{{ (commande.postes | length) + 1 }}" min="1">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Montant total (€)</label>
+              <input type="number" name="montant_total" class="form-control" step="0.01" min="0" required>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary">⊕ Ajouter</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}{% if commande %}Modifier{% else %}Nouvelle{% endif %} commande — Facturation AT{% endblock %}
+{% block page_title %}{% if commande %}Modifier la commande {{ commande.numero }}{% else %}Nouvelle commande{% endif %}{% endblock %}
+
+{% block topbar_actions %}
+<a href="/commandes/" class="btn btn-secondary">← Retour</a>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:800px">
+  <div class="card-body">
+    <form method="post" action="{% if commande %}/commandes/{{ commande.id }}/edit{% else %}/commandes/new{% endif %}"
+          id="formCommande">
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">N° Commande *</label>
+          <input type="text" name="numero" class="form-control" required
+                 value="{{ commande.numero if commande else '' }}" placeholder="CDE-2025-001">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Mission *</label>
+          <select name="mission_id" class="form-control" required>
+            <option value="">— Sélectionner —</option>
+            {% for m in missions %}
+            <option value="{{ m.id }}" {% if commande and commande.mission_id == m.id %}selected{% endif %}>
+              {{ m.client }} — {{ m.mission_name }} ({{ m.code }})
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      {% if not commande %}
+      <!-- Postes (création uniquement) -->
+      <div class="card-header" style="margin:0 -24px 16px;padding:12px 24px;background:var(--bleu-clair)">
+        <h2>Postes de commande</h2>
+      </div>
+
+      <div id="postes-container">
+        <div class="poste-card" data-poste="1">
+          <div class="flex justify-between items-center mb-2">
+            <strong>Poste 1</strong>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">N° Poste</label>
+              <input type="number" name="postes_numeros" value="1" class="form-control" readonly>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Montant total (€) *</label>
+              <input type="number" name="postes_montants" step="0.01" min="0" class="form-control"
+                     required placeholder="5000">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button type="button" class="btn btn-secondary mt-1" onclick="ajouterPoste()">
+        ⊕ Ajouter un poste
+      </button>
+      {% endif %}
+
+      <div class="flex gap-2 mt-3">
+        <button type="submit" class="btn btn-primary">
+          {% if commande %}Enregistrer{% else %}Créer la commande{% endif %}
+        </button>
+        <a href="/commandes/" class="btn btn-secondary">Annuler</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if not commande %}
+<script>
+let posteCount = 1;
+function ajouterPoste() {
+  posteCount++;
+  const container = document.getElementById('postes-container');
+  const div = document.createElement('div');
+  div.className = 'poste-card';
+  div.innerHTML = `
+    <div class="flex justify-between items-center mb-2">
+      <strong>Poste ${posteCount}</strong>
+      <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.poste-card').remove()">Supprimer</button>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">N° Poste</label>
+        <input type="number" name="postes_numeros" value="${posteCount}" class="form-control" readonly>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Montant total (€) *</label>
+        <input type="number" name="postes_montants" step="0.01" min="0" class="form-control" required placeholder="5000">
+      </div>
+    </div>`;
+  container.appendChild(div);
+}
+</script>
+{% endif %}
+{% endblock %}

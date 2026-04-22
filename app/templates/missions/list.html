@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Missions — Facturation AT{% endblock %}
+{% block page_title %}Missions{% endblock %}
+
+{% block topbar_actions %}
+<a href="/missions/new" class="btn btn-primary">⊕ Nouvelle mission</a>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-body" style="padding:0">
+    {% if missions %}
+    <table>
+      <thead>
+        <tr>
+          <th>Code</th><th>Client</th><th>Mission</th><th>Consultant</th>
+          <th>Type facturation</th><th>Mode conso</th><th>Début</th><th>Statut</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in missions %}
+        <tr>
+          <td><code>{{ m.code }}</code></td>
+          <td><strong>{{ m.client }}</strong></td>
+          <td>{{ m.mission_name }}</td>
+          <td>{{ m.consultant }}</td>
+          <td>
+            {% if m.billing_type.value == "TJM_REGIE" %}
+              <span class="badge badge-bleu">TJM {{ m.tjm_or_forfait | montant }}</span>
+            {% else %}
+              <span class="badge badge-gris">Forfait {{ m.tjm_or_forfait | montant }}/mois</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if m.consumption_mode.value == "SEQUENTIEL" %}Séquentiel
+            {% else %}Poste / Mois{% endif %}
+          </td>
+          <td>{{ m.start_date | date_fr }}</td>
+          <td>
+            {% if m.active %}<span class="badge badge-vert">Active</span>
+            {% else %}<span class="badge badge-gris">Inactive</span>{% endif %}
+          </td>
+          <td>
+            <div class="flex gap-2">
+              <a href="/missions/{{ m.id }}" class="btn btn-sm btn-secondary">Voir</a>
+              <a href="/missions/{{ m.id }}/edit" class="btn btn-sm btn-secondary">Modifier</a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="text-muted text-center" style="padding:40px">
+      Aucune mission. <a href="/missions/new">Créer la première</a>.
+    </p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+{% block title %}BDL #{{ bdl.id }} — Facturation AT{% endblock %}
+{% block page_title %}BDL #{{ bdl.id }} — {{ bdl.mission.client }}{% endblock %}
+
+{% block topbar_actions %}
+<a href="/bdl/?mois={{ bdl.date_bdl.month }}&annee={{ bdl.date_bdl.year }}" class="btn btn-secondary">← Retour</a>
+{% endblock %}
+
+{% set mois_fr = ["","Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"] %}
+
+{% block content %}
+<div class="form-row" style="align-items:start;gap:24px">
+
+  <!-- Colonne gauche : infos + actions -->
+  <div style="min-width:320px;max-width:380px">
+
+    <!-- Statut & montant -->
+    <div class="card">
+      <div class="card-body text-center" style="padding:28px">
+        <div class="text-muted" style="font-size:12px;text-transform:uppercase;margin-bottom:4px">
+          {{ mois_fr[bdl.date_bdl.month] }} {{ bdl.date_bdl.year }}
+        </div>
+        <div style="font-size:36px;font-weight:700;color:var(--bleu);margin-bottom:8px">
+          {{ bdl.montant_effectif | montant }}
+        </div>
+        {% if bdl.montant_force %}
+        <div class="alert alert-info" style="font-size:12px">Montant forcé manuellement</div>
+        {% endif %}
+
+        {% if bdl.statut_document.value == "SIGNE" %}<span class="badge badge-vert" style="font-size:13px;padding:6px 16px">Signé ✓</span>
+        {% elif bdl.statut_document.value == "ENVOYE" %}<span class="badge badge-bleu" style="font-size:13px;padding:6px 16px">Envoyé</span>
+        {% else %}<span class="badge badge-gris" style="font-size:13px;padding:6px 16px">Généré</span>{% endif %}
+
+        {% if bdl.statut_alerte == "ALERTE_10" %}
+        <div class="alert alert-danger mt-2">⚠ Solde ≤ 10% — Alerter le client</div>
+        {% elif bdl.statut_alerte == "ALERTE_30" %}
+        <div class="alert alert-warning mt-2">⚠ Solde ≤ 30% — Anticiper le renouvellement</div>
+        {% elif bdl.statut_alerte == "COMMANDE_MANQUANTE" %}
+        <div class="alert alert-warning mt-2">Aucune commande enregistrée</div>
+        {% elif bdl.statut_alerte == "TOUS_POSTES_TERMINES" %}
+        <div class="alert alert-warning mt-2">Tous les postes sont terminés</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="card">
+      <div class="card-header"><h2>Actions</h2></div>
+      <div class="card-body" style="display:flex;flex-direction:column;gap:10px">
+
+        <!-- Générer PDF -->
+        <form method="post" action="/bdl/{{ bdl.id }}/generer-pdf">
+          <button type="submit" class="btn btn-primary" style="width:100%">
+            ⊡ {% if bdl.pdf_path %}Regénérer le PDF{% else %}Générer le PDF{% endif %}
+          </button>
+        </form>
+
+        {% if bdl.pdf_path %}
+        <a href="/bdl/{{ bdl.id }}/pdf" class="btn btn-secondary" style="width:100%;text-align:center">
+          ⬇ Télécharger le PDF
+        </a>
+
+        <!-- Envoyer par email -->
+        <form method="post" action="/bdl/{{ bdl.id }}/envoyer">
+          <input type="email" name="destinataire" class="form-control mb-1"
+                 placeholder="email@client.com" required>
+          <button type="submit" class="btn btn-success" style="width:100%">
+            ✉ Envoyer par email
+          </button>
+        </form>
+        {% endif %}
+
+        {% if bdl.statut_document.value == "ENVOYE" %}
+        <!-- Marquer signé -->
+        <div style="border-top:1px solid var(--border);padding-top:10px">
+          <form method="post" action="/bdl/{{ bdl.id }}/signer">
+            <button type="submit" class="btn btn-success" style="width:100%">
+              ✓ Marquer comme signé
+            </button>
+          </form>
+          <div class="text-muted text-center" style="font-size:11px;margin:6px 0">ou</div>
+          <form method="post" action="/bdl/{{ bdl.id }}/upload-signe" enctype="multipart/form-data">
+            <input type="file" name="fichier" class="form-control mb-1" accept=".pdf" required>
+            <button type="submit" class="btn btn-success" style="width:100%">
+              ⬆ Importer BDL signé
+            </button>
+          </form>
+        </div>
+        {% endif %}
+
+      </div>
+    </div>
+
+    <!-- Historique emails -->
+    {% if bdl.email_logs %}
+    <div class="card">
+      <div class="card-header"><h2>Historique emails</h2></div>
+      <div class="card-body" style="padding:0">
+        {% for log in bdl.email_logs %}
+        <div style="padding:10px 16px;border-bottom:1px solid var(--border);font-size:12px">
+          <div class="flex justify-between">
+            <span>{{ log.recipient }}</span>
+            <span class="badge {% if log.status == 'OK' %}badge-vert{% else %}badge-rouge{% endif %}">
+              {{ log.status }}
+            </span>
+          </div>
+          <div class="text-muted">{{ log.sent_at.strftime('%d/%m/%Y %H:%M') }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Colonne droite : détail + édition -->
+  <div style="flex:1">
+
+    <!-- Détail BDL -->
+    <div class="card">
+      <div class="card-header"><h2>Détail du BDL</h2></div>
+      <div class="card-body">
+        <table style="width:100%">
+          <tr><td class="text-muted" style="width:35%;padding:7px 0">Client</td><td><strong>{{ bdl.mission.client }}</strong></td></tr>
+          <tr><td class="text-muted" style="padding:7px 0">Mission</td><td>{{ bdl.mission.mission_name }}</td></tr>
+          <tr><td class="text-muted" style="padding:7px 0">Consultant</td><td>{{ bdl.mission.consultant }}</td></tr>
+          <tr><td class="text-muted" style="padding:7px 0">Période</td><td>{{ mois_fr[bdl.date_bdl.month] }} {{ bdl.date_bdl.year }}</td></tr>
+          <tr><td class="text-muted" style="padding:7px 0">Type facturation</td><td>{{ bdl.mission.billing_type.value.replace('_',' ') }}</td></tr>
+          {% if bdl.commande %}
+          <tr><td class="text-muted" style="padding:7px 0">Commande</td><td>{{ bdl.commande.numero }}</td></tr>
+          {% endif %}
+          {% if bdl.poste %}
+          <tr><td class="text-muted" style="padding:7px 0">Poste</td>
+            <td>
+              Poste {{ bdl.poste.numero_poste }}
+              — Solde restant :
+              <strong>{{ bdl.poste.solde | montant }}</strong>
+              / {{ bdl.poste.montant_total | montant }}
+            </td>
+          </tr>
+          {% endif %}
+          <tr><td class="text-muted" style="padding:7px 0">Montant calculé</td><td>{{ bdl.montant_calcule | montant }}</td></tr>
+          {% if bdl.montant_force %}
+          <tr><td class="text-muted" style="padding:7px 0">Montant forcé</td>
+            <td><strong style="color:var(--orange)">{{ bdl.montant_force | montant }}</strong></td>
+          </tr>
+          {% endif %}
+        </table>
+      </div>
+    </div>
+
+    <!-- Édition manuelle -->
+    {% if bdl.statut_document.value == "GENERE" %}
+    <div class="card">
+      <div class="card-header"><h2>Modifier le BDL</h2></div>
+      <div class="card-body">
+        <form method="post" action="/bdl/{{ bdl.id }}/edit">
+          <div class="form-row">
+            {% if bdl.mission.billing_type.value == "TJM_REGIE" %}
+            <div class="form-group">
+              <label class="form-label">Jours travaillés</label>
+              <input type="number" name="jours_mois" class="form-control" step="0.5" min="0"
+                     value="{{ bdl.jours_mois if bdl.jours_mois else '' }}">
+              <small class="text-muted">TJM : {{ bdl.mission.tjm_or_forfait | montant }}/jour</small>
+            </div>
+            {% endif %}
+            <div class="form-group">
+              <label class="form-label">Montant forcé (€)</label>
+              <input type="number" name="montant_force" class="form-control" step="0.01" min="0"
+                     value="{{ bdl.montant_force if bdl.montant_force else '' }}"
+                     placeholder="Laisser vide pour utiliser le calculé">
+              <small class="text-muted">Mettre 0 pour annuler le forçage</small>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Commentaire</label>
+            <input type="text" name="commentaire" class="form-control"
+                   value="{{ bdl.commentaire if bdl.commentaire else '' }}">
+          </div>
+          <button type="submit" class="btn btn-primary">Enregistrer</button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
